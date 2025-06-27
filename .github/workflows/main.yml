@@ -50,6 +50,7 @@ jobs:
 
     # 4. forcer le wrapper Gradle -------------------------------------------
     - name: Upgrade Gradle wrapper
+      working-directory: telon-gateway-app/android   #  <<====  ICI
       run: |
         chmod +x gradlew
         ./gradlew wrapper --gradle-version $GRADLE_VERSION --distribution-type all
@@ -73,6 +74,7 @@ jobs:
 
     # 7. Build AAB -----------------------------------------------------------
     - name: Build AAB
+      working-directory: telon-gateway-app/android   #  <<====  ICI
       run: |
         cd android
         ./gradlew clean bundleRelease --no-daemon -x lint
