@@ -78,7 +78,7 @@ jobs:
       run: |
         cd android
         ./gradlew clean bundleRelease --no-daemon -x lint
-      working-directory: telon-gateway-app
+
 
     # 8. Publier l’AAB en artefact ------------------------------------------
     - uses: actions/upload-artifact@v4
