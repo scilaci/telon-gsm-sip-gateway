@@ -1,26 +1,43 @@
 name: Android Build
 on:
   workflow_dispatch:
+
 jobs:
-  build:
+  build_android:
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-node@v4
-      with:
-        node-version: '16'
-    - uses: gradle/gradle-build-action@v2
-      with:
-        gradle-version: 6.9
-    - name: Cache NPM
-      uses: actions/cache@v3
-      with:
-        path: ~/.npm
-        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-    - run: npm ci
-    - run: echo "NODE_OPTIONS=--openssl-legacy-provider" >> $GITHUB_ENV
-    - run: cd android && ./gradlew assembleRelease
-    - uses: actions/upload-artifact@v3
-      with:
-        name: app-release.apk
-        path: android/app/build/outputs/apk/release/app-release.apk
+      # 1) récupérer le code
+      - uses: actions/checkout@v4
+
+      # 2) Node 16 (ou 18 si tu as résolu l’OpenSSL)
+      - uses: actions/setup-node@v4          # v4 aussi
+        with:
+          node-version: '16'
+
+      # 3) Cache NPM ⬇️    ← c’est ici qu’il faut passer à v4
+      - name: Cache NPM
+        uses: actions/cache@v4               # ⬅️ remplacer v2 ➜ v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      # 4) Installer les deps JavaScript
+      - run: npm ci
+
+      # 5) Option OpenSSL si Node 17/18
+      - run: echo "NODE_OPTIONS=--openssl-legacy-provider" >> $GITHUB_ENV
+
+      # 6) Cache Gradle (la nouvelle action gère ça pour toi)
+      - uses: gradle/actions/setup-gradle@v3
+
+      # 7) Build APK
+      - run: cd android && ./gradlew assembleRelease
+
+      # 8) Publier l’APK
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-release.apk
+          path: android/app/build/outputs/apk/release/app-release.apk
