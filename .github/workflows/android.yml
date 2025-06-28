@@ -30,9 +30,9 @@ jobs:
       with: |
         packages: >
           platform-tools
-          platforms;android-32          # ⬅️ API 32, pas 33
-          build-tools;33.0.2            # OK, les build-tools 33 fonctionnent
-          ndk;17.2.4988734              # r17b pour PJSIP
+          platforms;android-32    
+          build-tools;33.0.2   
+          ndk;17.2.4988734   
 
     # Remettre la bonne NDK pour Gradle
     - run: echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/17.2.4988734" >> "$GITHUB_ENV"
@@ -62,7 +62,7 @@ jobs:
       working-directory: telon-gateway-app/android
       run: |
         chmod +x gradlew
-        ./gradlew -v          # doit afficher JVM 1.8
+        ./gradlew -v   
         ./gradlew clean assembleRelease --no-daemon
 
     # artefact
