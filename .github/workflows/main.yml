@@ -5,8 +5,8 @@ on:
     branches: ['**']
 
 env:
-  JAVA_VERSION: '17'             # OK avec Gradle 7.6/AGP 7.x
-  GRADLE_VERSION: '7.6.2'
+  JAVA_VERSION: '9'             # OK avec Gradle 7.6/AGP 7.x
+  GRADLE_VERSION: '5.5'
   NODE_VERSION: '20'
   NDK_VERSION: 'r17b'
   NODE_OPTIONS: '--openssl-legacy-provider'
