@@ -11,20 +11,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # ---------------------------------------------------------------------
     - uses: actions/checkout@v4
 
-    # Node 16  (RN 0.61 / 0.62…)
     - uses: actions/setup-node@v4
       with: { node-version: 16 }
 
-    # JDK 17 (le temps d’installer le SDK)
     - uses: actions/setup-java@v4
       with:
         distribution: temurin
         java-version: 17
 
-    # ---------- SDK Android (plate-forme 32) -----------------------------
     - name: Install Android SDK
       uses: android-actions/setup-android@v3
       with:
@@ -34,38 +30,29 @@ jobs:
           build-tools;33.0.2
           ndk;17.2.4988734
 
-    # Remettre la bonne NDK pour Gradle
-    - run: echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/17.2.4988734" >> "$GITHUB_ENV"
-
-    # ---------- JDK 8 pour Gradle 5.5 ------------------------------------
     - uses: actions/setup-java@v4
       with:
         distribution: temurin
         java-version: 8
         cache: gradle
 
-    # cache npm
     - uses: actions/cache@v4
       with:
         path: ~/.npm
-        key: ${{ runner.os }}-npm-${{ hashFiles('telon-gateway-app/package-lock.json') }}
+        key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
 
-    # install JS
     - run: npm ci --legacy-peer-deps
       working-directory: telon-gateway-app
 
-    # cache Gradle
     - uses: gradle/actions/setup-gradle@v3
 
-    # ---------- Build APK -----------------------------------------------
     - name: Assemble release
       working-directory: telon-gateway-app/android
       run: |
         chmod +x gradlew
-        ./gradlew -v   
+        ./gradlew -v
         ./gradlew clean assembleRelease --no-daemon
 
-    # artefact
     - uses: actions/upload-artifact@v4
       with:
         name: app-release.apk
