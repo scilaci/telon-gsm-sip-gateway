@@ -11,60 +11,61 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Code ---------------------------------------------------------------
+    # ---------------------------------------------------------------------
     - uses: actions/checkout@v4
 
-    # 2. Node 16 ------------------------------------------------------------
+    # Node 16  (RN 0.61 / 0.62…)
     - uses: actions/setup-node@v4
       with: { node-version: 16 }
 
-    # 3. JDK 17 (pour installer le SDK) -------------------------------------
+    # JDK 17 (le temps d’installer le SDK)
     - uses: actions/setup-java@v4
       with:
         distribution: temurin
         java-version: 17
 
-    # 4. SDK Android (action v3 !) ------------------------------------------
+    # ---------- SDK Android (plate-forme 32) -----------------------------
     - name: Install Android SDK
       uses: android-actions/setup-android@v3
-      with:
-        # r17b requis pour PJSIP / JNI
-        packages: >-
+      with: |
+        packages: >
           platform-tools
-          platforms;android-33
-          build-tools;33.0.2
-          ndk;17.2.4988734         
+          platforms;android-32          # ⬅️ API 32, pas 33
+          build-tools;33.0.2            # OK, les build-tools 33 fonctionnent
+          ndk;17.2.4988734              # r17b pour PJSIP
 
-    # 5. JDK 8 (pour Gradle 5.5) -------------------------------------------
+    # Remettre la bonne NDK pour Gradle
+    - run: echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/17.2.4988734" >> "$GITHUB_ENV"
+
+    # ---------- JDK 8 pour Gradle 5.5 ------------------------------------
     - uses: actions/setup-java@v4
       with:
         distribution: temurin
         java-version: 8
         cache: gradle
 
-    # 6. Cache npm ----------------------------------------------------------
+    # cache npm
     - uses: actions/cache@v4
       with:
         path: ~/.npm
-        key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+        key: ${{ runner.os }}-npm-${{ hashFiles('telon-gateway-app/package-lock.json') }}
 
-    # 7. Dépendances JS -----------------------------------------------------
-    - run: npm install --legacy-peer-deps
+    # install JS
+    - run: npm ci --legacy-peer-deps
       working-directory: telon-gateway-app
 
-
-    # 8. Cache Gradle -------------------------------------------------------
+    # cache Gradle
     - uses: gradle/actions/setup-gradle@v3
 
-    # 9. Build APK ----------------------------------------------------------
+    # ---------- Build APK -----------------------------------------------
     - name: Assemble release
       working-directory: telon-gateway-app/android
       run: |
         chmod +x gradlew
-        ./gradlew -v                    # doit afficher « JVM 1.8 »
+        ./gradlew -v          # doit afficher JVM 1.8
         ./gradlew clean assembleRelease --no-daemon
 
-    # 10. Artefact ----------------------------------------------------------
+    # artefact
     - uses: actions/upload-artifact@v4
       with:
         name: app-release.apk
