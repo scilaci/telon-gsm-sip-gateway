@@ -1,65 +1,55 @@
-# .github/workflows/android.yaml
+# .github/workflows/android.yml
 name: Android Build
 on: { workflow_dispatch: {} }
 
 jobs:
   build_android:
     runs-on: ubuntu-latest
-
     steps:
-    # ------------------------------------------------------------------ code
     - uses: actions/checkout@v4
-
-    # ---------------------------------------------------------------- Node 16
     - uses: actions/setup-node@v4
       with: { node-version: 16 }
 
-    # ---------------------------------------------------------------- Java 17 –- requis pour sdkmanager
-    - name: ➡️  JDK 17 (SDK install)
-      uses: actions/setup-java@v4
+    # JDK 17 pour le SDK -----------------------------------------------------
+    - uses: actions/setup-java@v4
       with:
         distribution: temurin
         java-version: 17
 
-    # ---------------------------------------------------------------- Android SDK + NDK
-    - uses: android-actions/setup-android@v3      # v3 = nouvelles entrées
+    # ---- nouvelle action  v3  ---------------------------------------------
+    - uses: android-actions/setup-android@v3
       with:
-        packages: |                               # on liste explicitement
+        packages: |            # on liste exactement ce qu’il faut
           platform-tools
           platforms;android-33
           build-tools;33.0.2
-          ndk;17.2.4988734                        # NDK r17b
+          ndk;17.2.4988734     # r17b
 
-    # ---------------------------------------------------------------- Java 8 –- pour Gradle 5.5
-    - name: ⬅️  JDK 8 (build)
-      uses: actions/setup-java@v4
+    # JDK 8 pour Gradle 5.5/AGP 3.x -----------------------------------------
+    - uses: actions/setup-java@v4
       with:
         distribution: temurin
         java-version: 8
-        cache: gradle
+        cache: gradle          # ⬅️ bonus : cache automatique
 
-    # ---------------------------------------------------------------- caches NPM
+    # caches npm -------------------------------------------------------------
     - uses: actions/cache@v4
       with:
         path: ~/.npm
         key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
 
-    # ---------------------------------------------------------------- JS deps
     - run: npm ci
       working-directory: telon-gateway-app
 
-    # ---------------------------------------------------------------- cache Gradle
-    - uses: gradle/actions/setup-gradle@v3
+    - uses: gradle/actions/setup-gradle@v3    # cache Gradle wrapper/caches
 
-    # ---------------------------------------------------------------- build APK
-    - name: Assemble Release
+    - name: Assemble release
       working-directory: telon-gateway-app/android
       run: |
-        ./gradlew -v          # doit afficher “JVM: 1.8”
+        ./gradlew -v                  # doit afficher « JVM 1.8 »
         chmod +x gradlew
         ./gradlew clean assembleRelease --no-daemon
 
-    # ---------------------------------------------------------------- artefact
     - uses: actions/upload-artifact@v4
       with:
         name: app-release.apk
