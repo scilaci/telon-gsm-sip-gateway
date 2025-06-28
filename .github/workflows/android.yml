@@ -27,12 +27,12 @@ jobs:
     # ---------- SDK Android (plate-forme 32) -----------------------------
     - name: Install Android SDK
       uses: android-actions/setup-android@v3
-      with: |
-        packages: >
+      with:
+        packages: |
           platform-tools
-          platforms;android-32    
-          build-tools;33.0.2   
-          ndk;17.2.4988734   
+          platforms;android-32
+          build-tools;33.0.2
+          ndk;17.2.4988734
 
     # Remettre la bonne NDK pour Gradle
     - run: echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/17.2.4988734" >> "$GITHUB_ENV"
