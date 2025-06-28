@@ -41,7 +41,8 @@ jobs:
         path: ~/.npm
         key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
 
-    - run: npm ci --legacy-peer-deps
+    - name: Install JS deps (non-strict)
+      run: npm install --legacy-peer-deps --no-audit --no-fund
       working-directory: telon-gateway-app
 
     - uses: gradle/actions/setup-gradle@v3
