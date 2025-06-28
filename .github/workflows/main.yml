@@ -4,8 +4,8 @@ on:
   push:
     branches: ['**']
 
-env:                                # ------ commun à tous les jobs
-  JAVA_VERSION: '17'                # API 33 requiert JDK 11+ pour l’AGP 7.x
+env:
+  JAVA_VERSION: '17'             # OK avec Gradle 7.6/AGP 7.x
   GRADLE_VERSION: '7.6.2'
   NODE_VERSION: '20'
   NDK_VERSION: 'r17b'
@@ -16,10 +16,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. checkout ------------------------------------------------------------
+    # 1. checkout
     - uses: actions/checkout@v4
 
-    # 2. caches --------------------------------------------------------------
+    # 2. caches
     - name: Cache Gradle
       uses: actions/cache@v4
       with:
@@ -32,55 +32,53 @@ jobs:
         path: ~/.npm
         key: ${{ runner.os }}-npm-${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
 
-    # 3. tool-chain ----------------------------------------------------------
+    # 3. tool-chain
     - uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
 
     - uses: actions/setup-java@v4
       with:
-        distribution: 'temurin'
+        distribution: temurin
         java-version: ${{ env.JAVA_VERSION }}
 
     - uses: android-actions/setup-android@v2
       with:
-        api-level: 33         # compileSdk 33 dans ton gradle
+        api-level: 33
         build-tools: 33.0.2
         ndk-version: ${{ env.NDK_VERSION }}
 
-    # 4. forcer le wrapper Gradle -------------------------------------------
+    # 4. Mettre à jour le wrapper Gradle
     - name: Upgrade Gradle wrapper
-      working-directory: telon-gateway-app/android   #  <<====  ICI
+      working-directory: telon-gateway-app/android
       run: |
         chmod +x gradlew
         ./gradlew wrapper --gradle-version $GRADLE_VERSION --distribution-type all
 
-    # 5. npm install ---------------------------------------------------------
+    # 5. npm install
     - name: Install JS deps
       run: npm ci
       working-directory: telon-gateway-app
 
-    # 6. bundle JS -----------------------------------------------------------
+    # 6. bundle JS
     - name: Bundle JS (release)
+      working-directory: telon-gateway-app
       run: |
         mkdir -p android/app/build/intermediates/assets/release
-        npx react-native bundle                     \
-          --platform android                        \
-          --dev false                               \
-          --entry-file index.js                     \
+        npx react-native bundle \
+          --platform android \
+          --dev false \
+          --entry-file index.js \
           --bundle-output android/app/build/intermediates/assets/release/index.android.bundle \
           --assets-dest android/app/build/intermediates/res/merged/release
-      working-directory: telon-gateway-app
 
-    # 7. Build AAB -----------------------------------------------------------
+    # 7. Build AAB
     - name: Build AAB
-      working-directory: telon-gateway-app/android   #  <<====  ICI
+      working-directory: telon-gateway-app/android
       run: |
-        cd android
         ./gradlew clean bundleRelease --no-daemon -x lint
 
-
-    # 8. Publier l’AAB en artefact ------------------------------------------
+    # 8. Artefact
     - uses: actions/upload-artifact@v4
       with:
         name: telon-gateway-aab
