@@ -8,69 +8,59 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # -----------------------------------------------------------------------
-    # 1. Code
+    # 1. code ----------------------------------------------------------------
     - uses: actions/checkout@v4
 
-    # -----------------------------------------------------------------------
-    # 2. Node 16  (RN 0.6x/0.7x ≈ Node ≤ 18, donc 16 OK)
+    # 2. Node ----------------------------------------------------------------
     - uses: actions/setup-node@v4
       with:
         node-version: 16
 
-    # -----------------------------------------------------------------------
-    # 3. JDK **17** – requis pour installer le SDK (cmdline-tools 12 / bytecode 61)
+    # 3. JDK 17 (pour installer le SDK) --------------------------------------
     - uses: actions/setup-java@v4
       with:
         distribution: temurin
         java-version: 17
 
-    # -----------------------------------------------------------------------
-    # 4. SDK Android – nouvelle API de v3  ⚠️  PAS v2
+    # 4. SDK Android ---------------------------------------------------------
     - name: Install Android SDK components
-      uses: android-actions/setup-android@v3          # ⬅️ v3
+      uses: android-actions/setup-android@v3
       with:
         packages: |
           platform-tools
           platforms;android-33
           build-tools;33.0.2
-          ndk;17.2.4988734            # r17b (pour PJSIP / JNI)
+          ndk;17.2.4988734    # r17b
 
-    # -----------------------------------------------------------------------
-    # 5. JDK **8** – ton projet tourne encore avec Gradle 5.5 / AGP 3.x
+    # 5. JDK 8 (pour Gradle 5.5 / AGP 3.x) -----------------------------------
     - uses: actions/setup-java@v4
       with:
         distribution: temurin
-        java-version: 8
-        cache: gradle                 # cache ~/.gradle automatiquement
+        java-version: 8         # JVM 1.8
+        cache: gradle
 
-    # -----------------------------------------------------------------------
-    # 6. cache npm
+    # 6. cache npm -----------------------------------------------------------
     - uses: actions/cache@v4
       with:
         path: ~/.npm
         key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
 
-    # -----------------------------------------------------------------------
-    # 7. Dépendances JS
+    # 7. deps JS -------------------------------------------------------------
     - run: npm ci
       working-directory: telon-gateway-app
 
-    # -----------------------------------------------------------------------
-    # 8. Cache Gradle côté wrapper/caches
+    # 8. cache Gradle --------------------------------------------------------
     - uses: gradle/actions/setup-gradle@v3
 
-    # -----------------------------------------------------------------------
-    # 9. Build APK
+    # 9. Build APK -----------------------------------------------------------
     - name: Assemble release
       working-directory: telon-gateway-app/android
       run: |
-        ./gradlew -v          # diagnostic : doit afficher « JVM 1.8 »
-        chmod +x gradlew
+        chmod +x gradlew          # <-- AVANT toute exécution
+        ./gradlew -v              # diagnostic : doit afficher « JVM 1.8 »
         ./gradlew clean assembleRelease --no-daemon
 
-    # -----------------------------------------------------------------------
-    # 10. Artefact
+    # 10. artefact -----------------------------------------------------------
     - uses: actions/upload-artifact@v4
       with:
         name: app-release.apk
