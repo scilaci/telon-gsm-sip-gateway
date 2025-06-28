@@ -7,37 +7,45 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) récupérer le code
-      - uses: actions/checkout@v4
+    # 1) Récupérer le code
+    - uses: actions/checkout@v4
 
-      # 2) Node 16 (ou 18 si tu as résolu l’OpenSSL)
-      - uses: actions/setup-node@v4          # v4 aussi
-        with:
-          node-version: '16'
+    # 2) Node 16 (encore compatible RN 0.71/0.72 sans bidouille OpenSSL)
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '16'
 
-      # 3) Cache NPM ⬇️    ← c’est ici qu’il faut passer à v4
-      - name: Cache NPM
-        uses: actions/cache@v4               # ⬅️ remplacer v2 ➜ v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+    # 3) Cache NPM
+    - name: Cache NPM
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
 
-      # 4) Installer les deps JavaScript
-      - run: npm ci
+    # 4) Dépendances JS
+    - run: npm ci
+      working-directory: telon-gateway-app
 
-      # 5) Option OpenSSL si Node 17/18
-      - run: echo "NODE_OPTIONS=--openssl-legacy-provider" >> $GITHUB_ENV
+    # 5) ***Java 8*** : indispensable avec Gradle 5.x (sinon erreur Java7/Groovy)
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: 8
 
-      # 6) Cache Gradle (la nouvelle action gère ça pour toi)
-      - uses: gradle/actions/setup-gradle@v3
+    # 6) Cache Gradle
+    - uses: gradle/actions/setup-gradle@v3
 
-      # 7) Build APK
-      - run: cd android && ./gradlew assembleRelease
+    # 7) Build APK release
+    - name: Assemble Release
+      working-directory: telon-gateway-app/android
+      run: |
+        chmod +x gradlew
+        ./gradlew clean assembleRelease --no-daemon
 
-      # 8) Publier l’APK
-      - uses: actions/upload-artifact@v4
-        with:
-          name: app-release.apk
-          path: android/app/build/outputs/apk/release/app-release.apk
+    # 8) Publier l’APK
+    - uses: actions/upload-artifact@v4
+      with:
+        name: app-release.apk
+        path: telon-gateway-app/android/app/build/outputs/apk/release/app-release.apk
