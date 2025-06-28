@@ -1,49 +1,65 @@
+# .github/workflows/android.yaml
 name: Android Build
-on:
-  workflow_dispatch:
+on: { workflow_dispatch: {} }
 
 jobs:
   build_android:
     runs-on: ubuntu-latest
 
     steps:
-    # 1) code
+    # ------------------------------------------------------------------ code
     - uses: actions/checkout@v4
 
-    # 2) Node (16 = encore supporté par RN 0.6x/0.7x)
+    # ---------------------------------------------------------------- Node 16
     - uses: actions/setup-node@v4
-      with:
-        node-version: 16
+      with: { node-version: 16 }
 
-    # 3) Java **8** – placé AVANT toute commande Gradle
-    - uses: actions/setup-java@v4
+    # ---------------------------------------------------------------- Java 17 –- requis pour sdkmanager
+    - name: ➡️  JDK 17 (SDK install)
+      uses: actions/setup-java@v4
       with:
-        distribution: temurin      # ou « zulu », « adopt » …
+        distribution: temurin
+        java-version: 17
+
+    # ---------------------------------------------------------------- Android SDK + NDK
+    - uses: android-actions/setup-android@v3      # v3 = nouvelles entrées
+      with:
+        packages: |                               # on liste explicitement
+          platform-tools
+          platforms;android-33
+          build-tools;33.0.2
+          ndk;17.2.4988734                        # NDK r17b
+
+    # ---------------------------------------------------------------- Java 8 –- pour Gradle 5.5
+    - name: ⬅️  JDK 8 (build)
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
         java-version: 8
+        cache: gradle
 
-    # 4) caches
+    # ---------------------------------------------------------------- caches NPM
     - uses: actions/cache@v4
       with:
         path: ~/.npm
         key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
 
-    # 5) deps JS
+    # ---------------------------------------------------------------- JS deps
     - run: npm ci
       working-directory: telon-gateway-app
 
-    # 6) cache Gradle
+    # ---------------------------------------------------------------- cache Gradle
     - uses: gradle/actions/setup-gradle@v3
 
-    # 7) build APK
-    - name: Assemble release
+    # ---------------------------------------------------------------- build APK
+    - name: Assemble Release
       working-directory: telon-gateway-app/android
       run: |
-        echo "JAVA_HOME=$JAVA_HOME"      # diagnostic
-        ./gradlew -v                    # vérifie que Gradle voit bien le JDK 8
+        ./gradlew -v          # doit afficher “JVM: 1.8”
         chmod +x gradlew
         ./gradlew clean assembleRelease --no-daemon
 
-    # 8) artefact
+    # ---------------------------------------------------------------- artefact
     - uses: actions/upload-artifact@v4
       with:
         name: app-release.apk
