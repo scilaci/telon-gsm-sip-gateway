@@ -7,44 +7,43 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1) Récupérer le code
+    # 1) code
     - uses: actions/checkout@v4
 
-    # 2) Node 16 (encore compatible RN 0.71/0.72 sans bidouille OpenSSL)
+    # 2) Node (16 = encore supporté par RN 0.6x/0.7x)
     - uses: actions/setup-node@v4
       with:
-        node-version: '16'
+        node-version: 16
 
-    # 3) Cache NPM
-    - name: Cache NPM
-      uses: actions/cache@v4
+    # 3) Java **8** – placé AVANT toute commande Gradle
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin      # ou « zulu », « adopt » …
+        java-version: 8
+
+    # 4) caches
+    - uses: actions/cache@v4
       with:
         path: ~/.npm
-        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-node-
+        key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
 
-    # 4) Dépendances JS
+    # 5) deps JS
     - run: npm ci
       working-directory: telon-gateway-app
 
-    # 5) ***Java 8*** : indispensable avec Gradle 5.x (sinon erreur Java7/Groovy)
-    - uses: actions/setup-java@v4
-      with:
-        distribution: temurin
-        java-version: 8
-
-    # 6) Cache Gradle
+    # 6) cache Gradle
     - uses: gradle/actions/setup-gradle@v3
 
-    # 7) Build APK release
-    - name: Assemble Release
+    # 7) build APK
+    - name: Assemble release
       working-directory: telon-gateway-app/android
       run: |
+        echo "JAVA_HOME=$JAVA_HOME"      # diagnostic
+        ./gradlew -v                    # vérifie que Gradle voit bien le JDK 8
         chmod +x gradlew
         ./gradlew clean assembleRelease --no-daemon
 
-    # 8) Publier l’APK
+    # 8) artefact
     - uses: actions/upload-artifact@v4
       with:
         name: app-release.apk
