@@ -11,74 +11,57 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # ---------------------------------------------------------------------
-    # 1. Code
+      # 1) checkout
     - uses: actions/checkout@v4
 
-    # ---------------------------------------------------------------------
-    # 2. Node 16 (compatible RN 0.61-0.63)
+      # 2) Node 16
     - uses: actions/setup-node@v4
       with:
         node-version: 16
 
-    # ---------------------------------------------------------------------
-    # 3. JDK 17 – juste pour installer le SDK
+      # 3) JDK 17 (uniquement pour sdkmanager)
     - uses: actions/setup-java@v4
       with:
         distribution: temurin
         java-version: 17
 
-    # ---------------------------------------------------------------------
-    # 4. SDK Android (action v3)
+      # 4) Installer le SDK Android (action v3) sans commentaires inline
     - name: Install Android SDK
       uses: android-actions/setup-android@v3
       with:
-        packages: >-
+        packages: |
           platform-tools
           platforms;android-32
           build-tools;33.0.2
           ndk;17.2.4988734
 
-    # ---------------------------------------------------------------------
-    # 4 bis. Purge des plateformes « ext » incompatibles avec AGP 3.x
-    - name: Prune preview SDK platforms
-      run: |
-        echo "Avant purge :"
-        ls -1 "$ANDROID_HOME/platforms" || true
-
-        find "$ANDROID_HOME/platforms" -maxdepth 1 -type d \
-             \( -name "*-ext*" -o -name "*x*" \) -print -exec rm -rf {} +
-
-        echo "Après purge :"
-        ls -1 "$ANDROID_HOME/platforms" || true
-
-    # ---------------------------------------------------------------------
-    # 5. JDK 8 – requis par Gradle 5.5 / AGP 3.x
+      # 5) JDK 8 (pour Gradle 5.5)
     - uses: actions/setup-java@v4
       with:
         distribution: temurin
         java-version: 8
         cache: gradle
 
-    # ---------------------------------------------------------------------
-    # 6. Cache npm
+      # 6) cache npm
     - uses: actions/cache@v4
       with:
         path: ~/.npm
         key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
 
-    # ---------------------------------------------------------------------
-    # 7. Dépendances JS (mode tolérant)
-    - name: Install JS deps (non-strict)
+      # 7) deps JS (install “non-strict” pour éviter les lockfile mismatches)
+    - name: Install JS deps
       run: npm install --legacy-peer-deps --no-audit --no-fund
       working-directory: telon-gateway-app
 
-    # ---------------------------------------------------------------------
-    # 8. Cache/wrapper Gradle
+      # 7b) patch du plugin qui casse sous Gradle 5
+    - name: Patch react-native-replace-dialer pour JavaVersion
+      run: |
+        sed -i 's/JavaVersion\.VERSION_17/JavaVersion.toVersion(17)/g' telon-gateway-app/node_modules/react-native-replace-dialer/android/app/build.gradle
+
+      # 8) cache Gradle (wrapper & caches)
     - uses: gradle/actions/setup-gradle@v3
 
-    # ---------------------------------------------------------------------
-    # 9. Build APK
+      # 9) build APK
     - name: Assemble release
       working-directory: telon-gateway-app/android
       run: |
@@ -86,8 +69,7 @@ jobs:
         ./gradlew -v
         ./gradlew clean assembleRelease --no-daemon
 
-    # ---------------------------------------------------------------------
-    # 10. Artefact
+      # 10) upload APK
     - uses: actions/upload-artifact@v4
       with:
         name: app-release.apk
