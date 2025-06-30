@@ -60,11 +60,16 @@ jobs:
     # 7b) patch des plugins qui utilisent JavaVersion.VERSION_17
     - name: Patch JavaVersion pour plugins natifs
       run: |
-        # Replace JavaVersion.VERSION_17 -> JavaVersion.toVersion(17)
-        find telon-gateway-app/node_modules -type f -name 'build.gradle' \
-          -path '*/react-native-replace-dialer/*' -o -path '*/react-native-sip2/*' \
-          | xargs sed -i \
-            -e 's/JavaVersion\.VERSION_17/JavaVersion.toVersion(17)/g'
+        # Pour react-native-replace-dialer
+        find telon-gateway-app/node_modules/react-native-replace-dialer \
+          -type f -name '*.gradle' \
+          -exec sed -i 's/JavaVersion\.VERSION_17/JavaVersion.toVersion(17)/g' {} +
+
+        # Pour react-native-sip2
+        find telon-gateway-app/node_modules/react-native-sip2 \
+          -type f -name '*.gradle' \
+          -exec sed -i 's/JavaVersion\.VERSION_17/JavaVersion.toVersion(17)/g' {} +
+
 
     # 8) cache Gradle
     - uses: gradle/actions/setup-gradle@v3
