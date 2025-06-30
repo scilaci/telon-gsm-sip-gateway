@@ -11,21 +11,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1) checkout
     - uses: actions/checkout@v4
 
-    # 2) Node 16
     - uses: actions/setup-node@v4
-      with:
-        node-version: 16
+      with: { node-version: 16 }
 
-    # 3) JDK 17 (uniquement pour sdkmanager)
     - uses: actions/setup-java@v4
       with:
         distribution: temurin
         java-version: 17
 
-    # 4) Installer le SDK Android (action v3)
     - name: Install Android SDK
       uses: android-actions/setup-android@v3
       with:
@@ -35,29 +30,24 @@ jobs:
           build-tools;33.0.2
           ndk;17.2.4988734
 
-    # 4b) Auto-accept all Android SDK licenses
     - name: Accept Android SDK licenses
       run: yes | sdkmanager --licenses
 
-    # 5) JDK 8 (pour Gradle 5.5)
     - uses: actions/setup-java@v4
       with:
         distribution: temurin
         java-version: 8
         cache: gradle
 
-    # 6) cache npm
     - uses: actions/cache@v4
       with:
         path: ~/.npm
         key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
 
-    # 7) deps JS
     - name: Install JS deps
       run: npm install --legacy-peer-deps --no-audit --no-fund
       working-directory: telon-gateway-app
 
-    # 7b) patch des plugins qui utilisent JavaVersion.VERSION_17
     - name: Patch JavaVersion pour plugins natifs
       run: |
         find telon-gateway-app/node_modules/react-native-replace-dialer \
@@ -67,29 +57,27 @@ jobs:
           -type f -name '*.gradle' \
           -exec sed -i 's/JavaVersion\.VERSION_17/JavaVersion.toVersion(17)/g' {} +
 
-    # 7c) Forcer la compatibilité Java 1.8 sur tous les sous-projets
-    - name: Force JavaCompile en 1.8
+    - name: Force Java 1.8 partout
       run: |
-        # Ajout en fin de telon-gateway-app/android/build.gradle
-        echo ""                                     >> telon-gateway-app/android/build.gradle
-        echo "// -- FORCER COMPILATION JAVA 1.8 --" >> telon-gateway-app/android/build.gradle
-        echo "subprojects {"                         >> telon-gateway-app/android/build.gradle
-        echo "  tasks.withType(JavaCompile).configureEach {" >> telon-gateway-app/android/build.gradle
-        echo "    sourceCompatibility = '1.8'"       >> telon-gateway-app/android/build.gradle
-        echo "    targetCompatibility = '1.8'"       >> telon-gateway-app/android/build.gradle
-        echo "  }"                                   >> telon-gateway-app/android/build.gradle
-        echo "}"                                     >> telon-gateway-app/android/build.gradle
+        cat << 'PATCH' >> telon-gateway-app/android/build.gradle
 
-    # 8a) désactiver Jetifier (on est déjà en AndroidX)
+        // -- FORCER COMPILATION JAVA 1.8 SUR TOUS LES SLOTS --
+        subprojects {
+          tasks.withType(JavaCompile).configureEach {
+            sourceCompatibility = '1.8'
+            targetCompatibility = '1.8'
+            options.release = 8
+          }
+        }
+        PATCH
+
     - name: Disable Jetifier
       run: |
         echo "android.useAndroidX=true"  >> telon-gateway-app/android/gradle.properties
         echo "android.enableJetifier=false" >> telon-gateway-app/android/gradle.properties
 
-    # 8) cache Gradle
     - uses: gradle/actions/setup-gradle@v3
 
-    # 9) build APK
     - name: Assemble release
       working-directory: telon-gateway-app/android
       run: |
@@ -97,7 +85,6 @@ jobs:
         ./gradlew -v
         ./gradlew clean assembleRelease --no-daemon
 
-    # 10) upload APK
     - uses: actions/upload-artifact@v4
       with:
         name: app-release.apk
