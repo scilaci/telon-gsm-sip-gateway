@@ -37,7 +37,7 @@ jobs:
           platform-tools
           platforms;android-32
           build-tools;33.0.2
-          ndk;17.2.4988734       # r17b
+          ndk;17.2.4988734
 
     # ---------------------------------------------------------------------
     # 4 bis. Purge des plateformes « ext » incompatibles avec AGP 3.x
@@ -83,7 +83,7 @@ jobs:
       working-directory: telon-gateway-app/android
       run: |
         chmod +x gradlew
-        ./gradlew -v           # doit afficher « JVM 1.8 »
+        ./gradlew -v
         ./gradlew clean assembleRelease --no-daemon
 
     # ---------------------------------------------------------------------
