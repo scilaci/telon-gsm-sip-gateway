@@ -70,6 +70,27 @@ jobs:
           -type f -name '*.gradle' \
           -exec sed -i 's/JavaVersion\.VERSION_17/JavaVersion.toVersion(17)/g' {} +
 
+    # 7c) Forcer la compatibilité Java 1.8 sur tous les sous-projets
+    - name: Force JavaCompile en 1.8
+      run: |
+        cat << 'EOF' >> telon-gateway-app/android/build.gradle
+
+// --- BEGIN FORCE JAVA 1.8 ---
+subprojects { project ->
+  project.afterEvaluate {
+    if (project.plugins.hasPlugin('java')
+     || project.plugins.hasPlugin('com.android.library')
+     || project.plugins.hasPlugin('com.android.application')) {
+      project.tasks.withType(JavaCompile).configureEach {
+        sourceCompatibility = '1.8'
+        targetCompatibility = '1.8'
+      }
+    }
+  }
+}
+// --- END FORCE JAVA 1.8 ---
+EOF
+
     # 8a) désactiver Jetifier (on est déjà en AndroidX)
     - name: Disable Jetifier
       run: |
@@ -78,8 +99,6 @@ jobs:
 
     # 8) cache Gradle
     - uses: gradle/actions/setup-gradle@v3
-
-
 
     # 9) build APK
     - name: Assemble release
