@@ -70,9 +70,16 @@ jobs:
           -type f -name '*.gradle' \
           -exec sed -i 's/JavaVersion\.VERSION_17/JavaVersion.toVersion(17)/g' {} +
 
+    # 8a) désactiver Jetifier (on est déjà en AndroidX)
+    - name: Disable Jetifier
+      run: |
+        echo "android.useAndroidX=true" >> telon-gateway-app/android/gradle.properties
+        echo "android.enableJetifier=false" >> telon-gateway-app/android/gradle.properties
 
     # 8) cache Gradle
     - uses: gradle/actions/setup-gradle@v3
+
+
 
     # 9) build APK
     - name: Assemble release
