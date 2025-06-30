@@ -74,22 +74,21 @@ jobs:
     - name: Force JavaCompile en 1.8
       run: |
         cat << 'EOF' >> telon-gateway-app/android/build.gradle
-
-// --- BEGIN FORCE JAVA 1.8 ---
-subprojects { project ->
-  project.afterEvaluate {
-    if (project.plugins.hasPlugin('java')
-     || project.plugins.hasPlugin('com.android.library')
-     || project.plugins.hasPlugin('com.android.application')) {
-      project.tasks.withType(JavaCompile).configureEach {
-        sourceCompatibility = '1.8'
-        targetCompatibility = '1.8'
-      }
-    }
-  }
-}
-// --- END FORCE JAVA 1.8 ---
-EOF
+          // --- BEGIN FORCE JAVA 1.8 ---
+          subprojects { project ->
+            project.afterEvaluate {
+              if (project.plugins.hasPlugin('java')
+               || project.plugins.hasPlugin('com.android.library')
+               || project.plugins.hasPlugin('com.android.application')) {
+                project.tasks.withType(JavaCompile).configureEach {
+                  sourceCompatibility = '1.8'
+                  targetCompatibility = '1.8'
+                }
+              }
+            }
+          }
+          // --- END FORCE JAVA 1.8 ---
+          EOF
 
     # 8a) désactiver Jetifier (on est déjà en AndroidX)
     - name: Disable Jetifier
