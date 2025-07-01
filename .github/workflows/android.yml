@@ -66,7 +66,7 @@ jobs:
       run: npm install --legacy-peer-deps --no-audit --no-fund
       working-directory: telon-gateway-app
 
-    # 7b) Patch JavaVersion & compileOptions.release dans les plugins natifs
+    # 7b) Patch JavaVersion & supprime toute directive "release" dans les plugins natifs
     - name: Patch plugins natifs pour Java 1.8
       run: |
         for pkg in react-native-replace-dialer react-native-sip2; do
@@ -74,8 +74,9 @@ jobs:
             -type f -name '*.gradle' \
             -exec sed -i -E \
               -e 's/JavaVersion\.VERSION_17/JavaVersion.toVersion(17)/g' \
+              -e '/\brelease\b/d' \
               -e 's/compileOptions \{[^}]*\}/compileOptions { sourceCompatibility = "1.8" targetCompatibility = "1.8" }/g' \
-              {} +
+            {} +
         done
 
     # 8) Désactiver Jetifier (on est déjà en AndroidX)
@@ -84,25 +85,24 @@ jobs:
         echo "android.useAndroidX=true"  >> telon-gateway-app/android/gradle.properties
         echo "android.enableJetifier=false" >> telon-gateway-app/android/gradle.properties
 
-    # 9) Forcer Java 1.8 dans TOUS les sous‐projets (catch sur release)
+    # 9) Forcer Java 1.8 dans TOUS les sous‐projets
     - name: Force Java 1.8 partout
       run: |
         cat <<'EOF' >> telon-gateway-app/android/build.gradle
 
-        // --- FORCE JAVA 1.8 POUR TOUS LES SOUS-PROJETS ---
-        subprojects {
-          tasks.withType(JavaCompile).configureEach { compileTask ->
-            compileTask.sourceCompatibility = '1.8'
-            compileTask.targetCompatibility = '1.8'
-            // si compileOptions.release traînait, on l'enlève sans crasher
-            try {
-              compileTask.options.release = null
-            } catch (MissingPropertyException _) {
-              // ignore
-            }
+      // --- FORCE JAVA 1.8 POUR TOUS LES SOUS-PROJETS ---
+      subprojects {
+        tasks.withType(JavaCompile).configureEach { compileTask ->
+          compileTask.sourceCompatibility = '1.8'
+          compileTask.targetCompatibility = '1.8'
+          try {
+            compileTask.options.release = null
+          } catch (MissingPropertyException _) {
+            // ignore si absent
           }
         }
-        EOF
+      }
+      EOF
 
     # 10) Cache Gradle
     - uses: gradle/actions/setup-gradle@v3
